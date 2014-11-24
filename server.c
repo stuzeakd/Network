@@ -16,13 +16,17 @@ int main(int argc, char *argv[]){
   int serv_sock, clnt_sock;
   struct sockaddr_in serv_addr, clnt_addr;
   socklen_t addr_size;
-  int str_len, i;
-  char buf[BUF_SIZE];
+  int str_len, i, cli_idx;
 
+  char buf[BUF_SIZE];
+  
   struct epoll_event *ep_events;
   struct epoll_event event;
   int epfd, event_cnt;
-
+  
+  int client_fd[BUF_SIZE];
+  int client_cnt = 0;
+  
   if(argc != 2) {
     printf("Usage : %s <port>\n", argv[0]);
     exit(1);
@@ -67,18 +71,33 @@ int main(int argc, char *argv[]){
 	event.events = EPOLLIN;
 	event.data.fd = clnt_sock;
 	epoll_ctl(epfd, EPOLL_CTL_ADD, clnt_sock, &event);
+
+	client_fd[client_cnt++] = clnt_sock;
 	printf("connected client : %d \n", clnt_sock);
       }
       else{
 	str_len = read(ep_events[i].data.fd, buf, BUF_SIZE);
-	printf("str_len : %d\n", str_len);
+	//	printf("str_len : %d\n", str_len);
 	if(str_len == 0){
+	  //delete disconnected socket
+	  //from epoll
 	  epoll_ctl(epfd, EPOLL_CTL_DEL, ep_events[i].data.fd, NULL);
+	  
+	  //from client fd list
+	  for( cli_idx = 0; cli_idx < client_cnt; ++cli_idx)
+	    if(client_fd[cli_idx] == ep_events[i].data.fd) break;
+	  client_cnt--;
+	  for( ; cli_idx < client_cnt -1 ; ++cli_idx)
+	    client_fd[cli_idx] = client_fd[cli_idx+1];
+	  
 	  close(ep_events[i].data.fd);
 	  printf("closed client : %d \n", ep_events[i].data.fd);
 	}
 	else{
-	  write(ep_events[i].data.fd, buf, str_len);
+	  for(i = 0; i < client_cnt; ++i){
+	    //	    printf("count : %d, fd : %d, str : %s\n", client_cnt, client_fd[i], buf);
+	    write(client_fd[i], buf, str_len);
+	  } 
 	}
       }
     }

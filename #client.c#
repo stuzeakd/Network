@@ -77,7 +77,7 @@ void * recv_msg(void * arg){
       return (void*)-1;
     }
     message[str_len] = '\0';
-    printf("\nmessage from server : %s", message);
+    printf("\nmessage : %s", message);
   }
 }
 
