@@ -85,8 +85,10 @@ void send_data( int sock, char * ctntType, char * filename){
   FILE * sendFile;
   printf("ctnt : %s\n", ctntType);
   sprintf(ctntTypeForm, "Content-type:%s\r\n\r\n", ctntType);
-  if((sendFile = fopen(filename, "r")) == NULL)
-     return;
+  if((sendFile = fopen(filename, "r")) == NULL){
+    send_errMsg(sock);
+    return;
+  }
   
   write(sock, protocol, strlen(protocol));
   write(sock, servname, strlen(servname));
@@ -107,6 +109,7 @@ void send_errMsg( int sock ){
   char buf[BUF_BIG];
   FILE * sendFile;
 
+  printf("404 !!! \n");
   if((sendFile = fopen("errorpage.html", "r")) == NULL)
      return;
   
@@ -124,11 +127,13 @@ void send_errMsg( int sock ){
 char * content_type(char * filename){
   char ext[BUF_VERYSMALL];
   char name[BUF_SMALL];
-  printf("filename in ctnt function : %s\n", filename);
+  char *tmp;
+  //  printf("filename in ctnt function : %s\n", filename);
   strcpy(name, filename);
-  strtok(name, ".");
-  strcpy(ext, strtok(NULL, "."));
-  printf("ext : %s\n", ext);
+  tmp = strtok(NULL, ".");
+  if(!tmp) strcpy(ext, tmp);
+  else return "text/html";
+
   if(!strcmp(ext, "html") || !strcmp(ext, "htm"))
     return "text/html";
   else if(!strcmp(ext, "css"))
